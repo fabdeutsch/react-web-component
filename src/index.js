@@ -46,7 +46,7 @@ module.exports = {
           shadowRoot.appendChild(styles[i].cloneNode(true));
         }
         shadowRoot.appendChild(mountPoint);
-        ReactDOM.render(app, mountPoint, function () {
+        ReactDOM.render(app, mountPoint, () => {
           appInstance = this;
           callConstructorHook(webComponentInstance);
           callLifeCycleHook('connectedCallback');
