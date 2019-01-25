@@ -1,1 +1,72 @@
-'use strict';var ReactDOM=require('react-dom'),retargetEvents=require('react-shadow-dom-retarget-events'),getStyleElementsFromReactWebComponentStyleLoader=require('./getStyleElementsFromReactWebComponentStyleLoader'),extractAttributes=require('./extractAttributes');module.exports={create:function create(a,b){function c(a){f.webComponentConstructed&&f.webComponentConstructed.apply(f,[a])}function d(a,b){var c=g[a];c&&f&&f[c]&&f[c].apply(f,b||[])}var e=!(2<arguments.length&&arguments[2]!==void 0)||arguments[2],f=void 0,g={attachedCallback:'webComponentAttached',connectedCallback:'webComponentConnected',disconnectedCallback:'webComponentDisconnected',attributeChangedCallback:'webComponentAttributeChanged',adoptedCallback:'webComponentAdopted'},h=Object.create(HTMLElement.prototype,{attachedCallback:{value:function value(){var b=this,g=b;if(e){b=b.createShadowRoot(),g=document.createElement('div');var h=getStyleElementsFromReactWebComponentStyleLoader();h.forEach(function(a){b.appendChild(a.cloneNode(b))}),b.appendChild(g),retargetEvents(b)}ReactDOM.render(a,g,function(){f=this,f.props=extractAttributes(b),c(b),d('attachedCallback')})}},connectedCallback:{value:function value(){d('connectedCallback')}},disconnectedCallback:{value:function value(){d('disconnectedCallback')}},attributeChangedCallback:{value:function value(a,b,c,e){d('attributeChangedCallback',[a,b,c,e])}},adoptedCallback:{value:function value(a,b){d('adoptedCallback',[a,b])}}});document.registerElement(b,{prototype:h})}};
+const ReactDOM = require('react-dom');
+const retargetEvents = require('react-shadow-dom-retarget-events');
+const getStyleElementsFromReactWebComponentStyleLoader = require('./getStyleElementsFromReactWebComponentStyleLoader');
+
+require('@webcomponents/shadydom');
+require('@webcomponents/custom-elements');
+
+module.exports = {
+  /**
+   * todo fix jsdoc type of app
+   * @param {*} app
+   * @param {string} tagName
+   */
+  create: function(app, tagName) {
+
+    var appInstance;
+
+    const lifeCycleHooks = {
+      connectedCallback: 'webComponentConnected',
+      disconnectedCallback: 'webComponentDisconnected',
+      attributeChangedCallback: 'webComponentAttributeChanged',
+      adoptedCallback: 'webComponentAdopted'
+    };
+
+    function callConstructorHook(webComponentInstance) {
+        if (appInstance['webComponentConstructed']) {
+            appInstance['webComponentConstructed'].apply(appInstance, [webComponentInstance])
+        }
+    }
+
+    function callLifeCycleHook(hook, params) {
+        const instanceParams = params || [];
+        const instanceMethod = lifeCycleHooks[hook];
+        if (instanceMethod && appInstance[instanceMethod]) {
+            appInstance[instanceMethod].apply(appInstance, instanceParams)
+        }
+    }
+
+    const proto = class extends HTMLElement {
+      connectedCallback() {
+        const shadowRoot = this.attachShadow({ mode: 'open' });
+        const mountPoint = document.createElement('div');
+        const styles = getStyleElementsFromReactWebComponentStyleLoader();
+        const webComponentInstance = this;
+        for (var i = 0; i < styles.length; i++) {
+          shadowRoot.appendChild(styles[i].cloneNode(true));
+        }
+        shadowRoot.appendChild(mountPoint);
+        ReactDOM.render(app, mountPoint, function () {
+          appInstance = this;
+          callConstructorHook(webComponentInstance);
+          callLifeCycleHook('connectedCallback');
+        });
+        retargetEvents(shadowRoot);
+      }
+
+      disconnectedCallback() {
+        callLifeCycleHook('disconnectedCallback');
+      }
+
+      attributeChangedCallback(attributeName, oldValue, newValue, namespace) {
+        callLifeCycleHook('attributeChangedCallback', [attributeName, oldValue, newValue, namespace]);
+      }
+
+      adoptedCallback(oldDocument, newDocument) {
+        callLifeCycleHook('adoptedCallback', [oldDocument, newDocument]);
+      }
+    };
+
+    customElements.define(tagName, proto);
+  },
+};
