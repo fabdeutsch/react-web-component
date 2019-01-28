@@ -1,6 +1,7 @@
 const ReactDOM = require('react-dom');
 const retargetEvents = require('react-shadow-dom-retarget-events');
 const getStyleElementsFromReactWebComponentStyleLoader = require('./getStyleElementsFromReactWebComponentStyleLoader');
+const extractAttributes = require('./extractAttributes');
 
 require('@webcomponents/shadydom');
 require('@webcomponents/custom-elements');
@@ -48,6 +49,7 @@ module.exports = {
         shadowRoot.appendChild(mountPoint);
         ReactDOM.render(app, mountPoint, () => {
           appInstance = this;
+          appInstance.props = extractAttributes(webComponentInstance);
           callConstructorHook(webComponentInstance);
           callLifeCycleHook('connectedCallback');
         });
